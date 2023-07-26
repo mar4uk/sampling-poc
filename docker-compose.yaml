@@ -1,0 +1,84 @@
+version: "3.9"
+
+networks:
+  default:
+    name: poc
+    driver: bridge
+
+services:
+  hello-world-app:
+    build: hello-world
+    ports:
+      - "8080:8080"
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otelcol:4317
+      - OTEL_SERVICE_NAME=hello-world-app
+      - FOO_ENDPOINT=http://foo:8081
+    depends_on:
+      otelcol:
+        condition: service_started
+      tempo:
+        condition: service_started
+    restart: unless-stopped
+  foo:
+    build: foo
+    ports:
+      - "8081:8081"
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otelcol:4317
+      - OTEL_SERVICE_NAME=foo
+    depends_on:
+      otelcol:
+        condition: service_started
+      tempo:
+        condition: service_started
+    restart: unless-stopped
+  otelcol:
+    image: otel/opentelemetry-collector-contrib:0.81.0
+    command: [ "--config=/etc/otel-collector-config.yaml" ]
+    volumes:
+      - ./config/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "4317:4317"     # OTLP over gRPC receiver
+      - "4318:4318"     # OTLP over HTTP receiver
+    restart: unless-stopped
+  tempo:
+    image: grafana/tempo:2.1.1
+    ports:
+      - "3200:3200"
+      - "4417:4417"
+      - "4418:4418"
+      - "9096:9096"
+    volumes:
+      - ./config/tempo-config.yaml:/config.yaml
+    command:
+      - --config.file=/config.yaml
+  grafana:
+    image: grafana/grafana:10.0.0
+#    environment:
+#      - "GF_AUTH_DISABLE_LOGIN_FORM=true"
+#      - "GF_AUTH_ANONYMOUS_ENABLED=true"
+#      - "GF_AUTH_ANONYMOUS_ORG_ROLE=Admin"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./config/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/grafana-datasources.yaml
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus.yaml:/prometheus.yaml
+    command:
+      - --enable-feature=exemplar-storage
+      - --enable-feature=native-histograms
+      - --config.file=/prometheus.yaml
+  k6:
+    image: grafana/k6
+    volumes:
+      - ./config/k6-script.js:/k6-script.js
+    command:
+      - run
+      - /k6-script.js
+    depends_on:
+      - hello-world-app

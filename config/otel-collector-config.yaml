@@ -1,0 +1,53 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+
+connectors:
+  servicegraph:
+    latency_histogram_buckets: [ 1,2,3,4,5 ]
+    dimensions:
+      - dimension-1
+      - dimension-2
+    store:
+      ttl: 1s
+      max_items: 10
+  spanmetrics:
+    histogram:
+      explicit:
+        buckets: [ 100us, 1ms, 2ms, 6ms, 10ms, 100ms, 250ms ]
+    dimensions:
+      - name: http.method
+        default: GET
+      - name: http.status_code
+    exclude_dimensions: [ 'status.code' ]
+    dimensions_cache_size: 1000
+    aggregation_temporality: "AGGREGATION_TEMPORALITY_CUMULATIVE"
+    metrics_flush_interval: 15s
+
+exporters:
+  logging:
+#    verbosity: detailed
+  otlphttp:
+    endpoint: http://tempo:4418
+  prometheus/servicegraph:
+    endpoint: 0.0.0.0:8889
+#    namespace: servicegraph
+
+  prometheusremotewrite:
+    endpoint: http://prometheus:9090/api/v1/write
+    target_info:
+      enabled: true
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [otlphttp, servicegraph, spanmetrics]
+    metrics/servicegraph:
+      receivers: [ servicegraph, spanmetrics ]
+      exporters: [ prometheus/servicegraph, prometheusremotewrite ]
+    logs:
+      receivers: [otlp]
+      exporters: [logging]
