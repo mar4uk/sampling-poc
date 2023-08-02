@@ -5,6 +5,7 @@ receivers:
       http:
 
 connectors:
+  forward:
   servicegraph:
     latency_histogram_buckets: [ 1,2,3,4,5 ]
     dimensions:
@@ -25,10 +26,22 @@ connectors:
     dimensions_cache_size: 1000
     aggregation_temporality: "AGGREGATION_TEMPORALITY_CUMULATIVE"
     metrics_flush_interval: 15s
+processors:
+  probabilistic_sampler:
+    hash_seed: 22
+    sampling_percentage: 50
 
+  tail_sampling:
+    policies: [
+      {
+        name: test-policy-4,
+        type: probabilistic,
+        probabilistic: { hash_salt: "custom-salt", sampling_percentage: 50 }
+      },
+    ]
 exporters:
   logging:
-#    verbosity: detailed
+    verbosity: detailed
   otlphttp:
     endpoint: http://tempo:4418
   prometheus/servicegraph:
@@ -44,7 +57,11 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      exporters: [otlphttp, servicegraph, spanmetrics]
+      exporters: [servicegraph, spanmetrics, forward]
+    traces/grafanacloud:
+      receivers: [forward]
+      processors: [tail_sampling]
+      exporters: [otlphttp]
     metrics/servicegraph:
       receivers: [ servicegraph, spanmetrics ]
       exporters: [ prometheus/servicegraph, prometheusremotewrite ]

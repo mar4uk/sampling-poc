@@ -2,6 +2,15 @@ global:
   scrape_interval: 5s
 
 scrape_configs:
+  - job_name: 'tempo'
+    static_configs:
+      - targets: ['tempo:3200']
+  - job_name: "hello-world-app"
+    static_configs:
+      - targets: [ "hello-world-app:8080" ]
+  - job_name: "foo"
+    static_configs:
+      - targets: [ "foo:8081" ]
   - job_name: 'otel-collector'
     static_configs:
       - targets: [ 'otelcol:8889' ]
