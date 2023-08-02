@@ -37,7 +37,7 @@ services:
     image: otel/opentelemetry-collector-contrib:0.81.0
     command: [ "--config=/etc/otel-collector-config.yaml" ]
     volumes:
-      - ./config/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+      - ./config/otel-collector-config-tempo.yaml:/etc/otel-collector-config.yaml
     ports:
       - "4317:4317"     # OTLP over gRPC receiver
       - "4318:4318"     # OTLP over HTTP receiver
@@ -45,10 +45,11 @@ services:
   tempo:
     image: grafana/tempo:2.1.1
     ports:
-      - "3200:3200"
-      - "4417:4417"
-      - "4418:4418"
-      - "9096:9096"
+      - "14268"  # jaeger ingest
+      - "3200"   # tempo
+      - "4317"  # otlp grpc
+      - "4318"  # otlp http
+      - "9411"   # zipkin
     volumes:
       - ./config/tempo-config.yaml:/config.yaml
     command:
@@ -63,17 +64,17 @@ services:
       - ./config/grafana-example-dashboard.json:/etc/grafana/example-dashboard.json
 
   prometheus:
-    image: prom/prometheus:v2.45.0
-    ports:
-      - "9090:9090"
+    platform: linux/amd64
+    image: prom/prometheus:latest
+    command:
+      - --config.file=/prometheus.yaml
+      - --web.enable-remote-write-receiver
     volumes:
       - ./config/prometheus.yaml:/prometheus.yaml
-    command:
-      - --web.enable-remote-write-receiver
-      - --enable-feature=exemplar-storage
-      - --enable-feature=native-histograms
-      - --config.file=/prometheus.yaml
+    ports:
+      - "9090:9090"
   k6:
+    platform: linux/amd64
     image: grafana/k6
     volumes:
       - ./config/k6-script.js:/k6-script.js

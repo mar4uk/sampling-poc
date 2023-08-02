@@ -46,7 +46,6 @@ exporters:
     endpoint: http://tempo:4418
   prometheus/servicegraph:
     endpoint: 0.0.0.0:8889
-#    namespace: servicegraph
 
   prometheusremotewrite:
     endpoint: http://prometheus:9090/api/v1/write
