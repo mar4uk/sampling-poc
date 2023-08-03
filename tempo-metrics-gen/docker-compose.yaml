@@ -11,6 +11,8 @@ services:
     ports:
       - "8080:8080"
     environment:
+      - OTEL_TRACES_SAMPLER=parentbased_traceidratio
+      - OTEL_TRACES_SAMPLER_ARG=0.5
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otelcol:4317
       - OTEL_SERVICE_NAME=hello-world
       - FOO_ENDPOINT=http://foo:8081
@@ -25,6 +27,8 @@ services:
     ports:
       - "8081:8081"
     environment:
+      - OTEL_TRACES_SAMPLER=parentbased_traceidratio
+      - OTEL_TRACES_SAMPLER_ARG=0.5
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otelcol:4317
       - OTEL_SERVICE_NAME=foo
     depends_on:

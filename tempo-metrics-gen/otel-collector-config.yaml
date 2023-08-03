@@ -2,6 +2,13 @@ receivers:
   otlp:
     protocols:
       grpc:
+processors:
+  attributes:
+    actions:
+      - action: insert
+        key: "X-SampleRatio"
+        value: 0.5
+
 exporters:
   otlp:
     endpoint: tempo:4417
@@ -11,4 +18,5 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
+      processors: [attributes]
       exporters: [otlp]

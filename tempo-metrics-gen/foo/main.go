@@ -30,9 +30,9 @@ func initProvider() (func(context.Context) error, error) {
 	// Register the trace exporter with a TracerProvider, using a batch
 	// span processor to aggregate spans before export.
 	bsp := sdktrace.NewBatchSpanProcessor(traceExporter)
-	sampler := NewRatioBasedSampler(0.5)
+	//sampler := NewRatioBasedSampler(0.5)
 	tracerProvider := sdktrace.NewTracerProvider(
-		sdktrace.WithSampler(sampler),
+		//sdktrace.WithSampler(sampler),
 		sdktrace.WithSpanProcessor(bsp),
 	)
 	otel.SetTracerProvider(tracerProvider)
