@@ -28,11 +28,17 @@ metrics_generator:
     external_labels:
       source: tempo
       cluster: docker-compose
+  processor:
+    service_graphs:
+      span_multiplier_key: "X-SampleRatio"
+    span_metrics:
+      span_multiplier_key: "X-SampleRatio"
   storage:
     path: /tmp/tempo/generator/wal
     remote_write:
       - url: http://prometheus:9090/api/v1/write
 #        send_exemplars: true
+
 
 storage:
   trace:
