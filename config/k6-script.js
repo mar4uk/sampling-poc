@@ -14,5 +14,5 @@ export const options = {
 };
 
 export default function () {
-    http.get('http://hello-world-app:8080');
+    http.get('http://hello-world:8080');
 }

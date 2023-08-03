@@ -104,7 +104,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "rate(calls{job=\"otel-collector\",service_name=\"hello-world-app\"}[5m])",
+          "expr": "rate(traces_spanmetrics_calls_total{service=\"hello-world\"}[5m])",
           "instant": false,
           "range": true,
           "refId": "A"
@@ -218,9 +218,10 @@
     "list": [
       {
         "current": {
-          "selected": true,
-          "text": "hello-world-app",
-          "value": "hello-world-app"
+          "isNone": true,
+          "selected": false,
+          "text": "None",
+          "value": ""
         },
         "datasource": {
           "type": "prometheus",

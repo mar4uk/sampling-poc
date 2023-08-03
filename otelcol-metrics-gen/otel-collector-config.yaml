@@ -44,8 +44,6 @@ exporters:
     verbosity: detailed
   otlphttp:
     endpoint: http://tempo:4418
-  prometheus/servicegraph:
-    endpoint: 0.0.0.0:8889
 
   prometheusremotewrite:
     endpoint: http://prometheus:9090/api/v1/write
@@ -63,7 +61,7 @@ service:
       exporters: [otlphttp]
     metrics/servicegraph:
       receivers: [ servicegraph, spanmetrics ]
-      exporters: [ prometheus/servicegraph, prometheusremotewrite ]
+      exporters: [ prometheusremotewrite ]
     logs:
       receivers: [otlp]
       exporters: [logging]

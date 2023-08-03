@@ -6,13 +6,13 @@ networks:
     driver: bridge
 
 services:
-  hello-world-app:
+  hello-world:
     build: hello-world
     ports:
       - "8080:8080"
     environment:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otelcol:4317
-      - OTEL_SERVICE_NAME=hello-world-app
+      - OTEL_SERVICE_NAME=hello-world
       - FOO_ENDPOINT=http://foo:8081
     depends_on:
       otelcol:
@@ -37,7 +37,7 @@ services:
     image: otel/opentelemetry-collector-contrib:0.81.0
     command: [ "--config=/etc/otel-collector-config.yaml" ]
     volumes:
-      - ./config/otel-collector-config-tempo.yaml:/etc/otel-collector-config.yaml
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
     ports:
       - "4317:4317"     # OTLP over gRPC receiver
       - "4318:4318"     # OTLP over HTTP receiver
@@ -45,13 +45,11 @@ services:
   tempo:
     image: grafana/tempo:2.1.1
     ports:
-      - "14268"  # jaeger ingest
-      - "3200"   # tempo
-      - "4317"  # otlp grpc
-      - "4318"  # otlp http
-      - "9411"   # zipkin
+      - "3200:3200"
+      - "4417:4417"
+      - "4418:4418"
     volumes:
-      - ./config/tempo-config.yaml:/config.yaml
+      - ./tempo-config.yaml:/config.yaml
     command:
       - --config.file=/config.yaml
   grafana:
@@ -59,9 +57,9 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./config/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/grafana-datasources.yaml
-      - ./config/grafana-dashboards.yaml:/etc/grafana/provisioning/dashboards/grafana-dashboards.yaml
-      - ./config/grafana-example-dashboard.json:/etc/grafana/example-dashboard.json
+      - ../config/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/grafana-datasources.yaml
+      - ../config/grafana-dashboards.yaml:/etc/grafana/provisioning/dashboards/grafana-dashboards.yaml
+      - ./grafana-example-dashboard.json:/etc/grafana/example-dashboard.json
 
   prometheus:
     platform: linux/amd64
@@ -70,16 +68,16 @@ services:
       - --config.file=/prometheus.yaml
       - --web.enable-remote-write-receiver
     volumes:
-      - ./config/prometheus.yaml:/prometheus.yaml
+      - ../config/prometheus.yaml:/prometheus.yaml
     ports:
       - "9090:9090"
   k6:
     platform: linux/amd64
     image: grafana/k6
     volumes:
-      - ./config/k6-script.js:/k6-script.js
+      - ../config/k6-script.js:/k6-script.js
     command:
       - run
       - /k6-script.js
     depends_on:
-      - hello-world-app
+      - hello-world

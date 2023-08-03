@@ -4,7 +4,7 @@ receivers:
       grpc:
 exporters:
   otlp:
-    endpoint: tempo:4317
+    endpoint: tempo:4417
     tls:
       insecure: true
 service:
