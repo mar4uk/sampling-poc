@@ -1,67 +1,50 @@
+extensions:
+  health_check: {}
+  basicauth/grafana_cloud_tempo:
+    client_auth:
+      username: "182484"
+      password: "glc_eyJvIjoiNjE5NzIzIiwibiI6InN0YWNrLTMzNjg1Ni1pbnRlZ3JhdGlvbi1pcmluYS1vdGVsLWRlbW8taXJpbmEtb3RlbC1kZW1vIiwiayI6IjVoMGx5VEc2dnpiMjIzcHQ3VDFLUDlTNyIsIm0iOnsiciI6ImV1In19"
+  basicauth/grafana_cloud_prometheus:
+    client_auth:
+      username: "374002"
+      password: "glc_eyJvIjoiNjE5NzIzIiwibiI6InN0YWNrLTMzNjg1Ni1pbnRlZ3JhdGlvbi1pcmluYS1vdGVsLWRlbW8taXJpbmEtb3RlbC1kZW1vIiwiayI6IjVoMGx5VEc2dnpiMjIzcHQ3VDFLUDlTNyIsIm0iOnsiciI6ImV1In19"
+  basicauth/grafana_cloud_loki:
+    client_auth:
+      username: "185971"
+      password: "glc_eyJvIjoiNjE5NzIzIiwibiI6InN0YWNrLTMzNjg1Ni1pbnRlZ3JhdGlvbi1pcmluYS1vdGVsLWRlbW8taXJpbmEtb3RlbC1kZW1vIiwiayI6IjVoMGx5VEc2dnpiMjIzcHQ3VDFLUDlTNyIsIm0iOnsiciI6ImV1In19"
 receivers:
   otlp:
     protocols:
       grpc:
       http:
-
-connectors:
-  forward:
-  servicegraph:
-    latency_histogram_buckets: [ 1,2,3,4,5 ]
-    dimensions:
-      - dimension-1
-      - dimension-2
-    store:
-      ttl: 1s
-      max_items: 10
-  spanmetrics:
-    histogram:
-      explicit:
-        buckets: [ 100us, 1ms, 2ms, 6ms, 10ms, 100ms, 250ms ]
-    dimensions:
-      - name: http.method
-        default: GET
-      - name: http.status_code
-    exclude_dimensions: [ 'status.code' ]
-    dimensions_cache_size: 1000
-    aggregation_temporality: "AGGREGATION_TEMPORALITY_CUMULATIVE"
-    metrics_flush_interval: 15s
 processors:
-  probabilistic_sampler:
-    hash_seed: 22
-    sampling_percentage: 50
-
-  tail_sampling:
-    policies: [
-      {
-        name: test-policy-4,
-        type: probabilistic,
-        probabilistic: { hash_salt: "custom-salt", sampling_percentage: 50 }
-      },
-    ]
+  batch:
 exporters:
-  logging:
-    verbosity: detailed
-  otlphttp:
-    endpoint: http://tempo:4418
-
-  prometheusremotewrite:
-    endpoint: http://prometheus:9090/api/v1/write
-    target_info:
-      enabled: true
-
+  debug:
+  otlp/grafana_cloud_traces:
+    endpoint: "tempo-eu-west-0.grafana.net:443"
+    auth:
+      authenticator: basicauth/grafana_cloud_tempo
+  loki/grafana_cloud_logs:
+    endpoint: "https://logs-prod-eu-west-0.grafana.net/loki/api/v1/push"
+    auth:
+      authenticator: basicauth/grafana_cloud_loki
+  prometheusremotewrite/grafana_cloud_metrics:
+    endpoint: "https://prometheus-prod-01-eu-west-0.grafana.net/api/prom/push"
+    auth:
+      authenticator: basicauth/grafana_cloud_prometheus
 service:
+  extensions: [health_check, basicauth/grafana_cloud_tempo, basicauth/grafana_cloud_prometheus, basicauth/grafana_cloud_loki]
   pipelines:
     traces:
       receivers: [otlp]
-      exporters: [servicegraph, spanmetrics, forward]
-    traces/grafanacloud:
-      receivers: [forward]
-      processors: [tail_sampling]
-      exporters: [otlphttp]
-    metrics/servicegraph:
-      receivers: [ servicegraph, spanmetrics ]
-      exporters: [ prometheusremotewrite ]
+      processors: [batch]
+      exporters: [otlp/grafana_cloud_traces]
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [prometheusremotewrite/grafana_cloud_metrics]
     logs:
       receivers: [otlp]
-      exporters: [logging]
+      processors: [batch]
+      exporters: [debug, loki/grafana_cloud_logs]

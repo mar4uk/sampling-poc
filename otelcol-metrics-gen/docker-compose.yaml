@@ -17,8 +17,6 @@ services:
     depends_on:
       otelcol:
         condition: service_started
-      tempo:
-        condition: service_started
     restart: unless-stopped
   foo:
     build: foo
@@ -30,11 +28,9 @@ services:
     depends_on:
       otelcol:
         condition: service_started
-      tempo:
-        condition: service_started
     restart: unless-stopped
   otelcol:
-    image: otel/opentelemetry-collector-contrib:0.81.0
+    image: otel/opentelemetry-collector-contrib:0.87.0
     command: [ "--config=/etc/otel-collector-config.yaml" ]
     volumes:
       - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
@@ -42,35 +38,6 @@ services:
       - "4317:4317"     # OTLP over gRPC receiver
       - "4318:4318"     # OTLP over HTTP receiver
     restart: unless-stopped
-  tempo:
-    image: grafana/tempo:2.1.1
-    ports:
-      - "3200:3200"
-      - "4417:4417"
-      - "4418:4418"
-    volumes:
-      - ./tempo-config.yaml:/config.yaml
-    command:
-      - --config.file=/config.yaml
-  grafana:
-    image: grafana/grafana:10.0.0
-    ports:
-      - "3000:3000"
-    volumes:
-      - ../config/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/grafana-datasources.yaml
-      - ../config/grafana-dashboards.yaml:/etc/grafana/provisioning/dashboards/grafana-dashboards.yaml
-      - ./grafana-example-dashboard.json:/etc/grafana/example-dashboard.json
-
-  prometheus:
-    platform: linux/amd64
-    image: prom/prometheus:latest
-    command:
-      - --config.file=/prometheus.yaml
-      - --web.enable-remote-write-receiver
-    volumes:
-      - ../config/prometheus.yaml:/prometheus.yaml
-    ports:
-      - "9090:9090"
   k6:
     platform: linux/amd64
     image: grafana/k6
