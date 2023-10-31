@@ -38,7 +38,7 @@ services:
         condition: service_started
     restart: unless-stopped
   otelcol:
-    image: otel/opentelemetry-collector-contrib:0.81.0
+    image: otel/opentelemetry-collector-contrib:0.88.0
     command: [ "--config=/etc/otel-collector-config.yaml" ]
     volumes:
       - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
@@ -71,6 +71,7 @@ services:
     command:
       - --config.file=/prometheus.yaml
       - --web.enable-remote-write-receiver
+      - --enable-feature=exemplar-storage
     volumes:
       - ../config/prometheus.yaml:/prometheus.yaml
     ports:

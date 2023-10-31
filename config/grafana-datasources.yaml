@@ -8,6 +8,9 @@ datasources:
     url: http://prometheus:9090
     jsonData:
       httpMethod: GET
+      exemplarTraceIdDestinations:
+        - name: trace_id
+          url: http://tempo:3200/trace/$${__value.raw}
 
   - name: Tempo
     type: tempo
