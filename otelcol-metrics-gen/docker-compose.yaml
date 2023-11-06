@@ -63,10 +63,11 @@ services:
 
   prometheus:
     platform: linux/amd64
-    image: prom/prometheus:latest
+    image: prom/prometheus:v2.47.2
     command:
       - --config.file=/prometheus.yaml
       - --web.enable-remote-write-receiver
+      - --enable-feature=otlp-write-receiver
     volumes:
       - ../config/prometheus.yaml:/prometheus.yaml
     ports:

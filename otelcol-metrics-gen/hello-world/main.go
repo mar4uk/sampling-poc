@@ -66,9 +66,7 @@ func main() {
 		endpoint: os.Getenv("FOO_ENDPOINT"),
 	}
 
-	http.Handle("/", app)
-
-	err = http.ListenAndServe(":8080", nil)
+	err = http.ListenAndServe(":8080", app)
 	if errors.Is(err, http.ErrServerClosed) {
 		fmt.Printf("server closed\n")
 	} else if err != nil {
@@ -78,10 +76,10 @@ func main() {
 }
 
 func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	ctx, span := otel.Tracer(name).Start(r.Context(), "serveHTTP")
+	ctx, span := otel.Tracer(name).Start(r.Context(), "serveHTTP"+" - "+r.URL.Path)
 	defer span.End()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, a.endpoint, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, a.endpoint+r.URL.Path, nil)
 	if err != nil {
 		http.Error(w, "couldn't create request to endpoint", http.StatusInternalServerError)
 	}

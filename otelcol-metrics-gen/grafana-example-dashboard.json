@@ -105,7 +105,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "rate(calls{service_name=\"hello-world\"}[5m])",
+          "expr": "rate(traces_spanmetrics_calls_total{service_name=\"foo\"}[5m])",
           "instant": false,
           "range": true,
           "refId": "A"
