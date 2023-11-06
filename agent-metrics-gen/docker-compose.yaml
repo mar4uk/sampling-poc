@@ -1,0 +1,112 @@
+version: "3.9"
+
+networks:
+  default:
+    name: poc
+    driver: bridge
+
+services:
+  hello-world:
+    build: hello-world
+    ports:
+      - "8080:8080"
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://agent:4317
+      - OTEL_SERVICE_NAME=hello-world
+      - FOO_ENDPOINT=http://foo:8081
+    depends_on:
+      agent:
+        condition: service_started
+      tempo:
+        condition: service_started
+    restart: unless-stopped
+  foo:
+    build: foo
+    ports:
+      - "8081:8081"
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://agent:4317
+      - OTEL_SERVICE_NAME=foo
+    depends_on:
+      agent:
+        condition: service_started
+      tempo:
+        condition: service_started
+    restart: unless-stopped
+
+#  otelcol:
+#    image: otel/opentelemetry-collector-contrib:0.88.0
+#    command: [ "--config=/etc/otel-collector-config.yaml" ]
+#    volumes:
+#      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
+#    ports:
+#      - "4317:4317"     # OTLP over gRPC receiver
+#      - "4318:4318"     # OTLP over HTTP receiver
+#    restart: unless-stopped
+
+  agent:
+    image: grafana/agent:latest
+    platform: linux/amd64
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - /etc/agent/config.river
+    volumes:
+      - ./agent-config.river:/etc/agent/config.river
+    ports:
+      - "12345:12345"
+      - "4317:4317"     # OTLP over gRPC receiver
+      - "4318:4318"     # OTLP over HTTP receiver
+    environment:
+      - AGENT_MODE=flow
+      - GRAFANA_CLOUD_PROMETHEUS_URL=http://prometheus:9090/api/v1/write
+      - GRAFANA_CLOUD_TEMPO_ENDPOINT=http://tempo:4417
+      - GRAFANA_CLOUD_LOKI_URL=http://loki:3100/loki/api/v1/push
+  tempo:
+    image: grafana/tempo:2.1.1
+    ports:
+      - "3200:3200"
+      - "4417:4417"
+      - "4418:4418"
+    volumes:
+      - ./tempo-config.yaml:/config.yaml
+    command:
+      - --config.file=/config.yaml
+  grafana:
+    image: grafana/grafana:10.0.0
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../config/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/grafana-datasources.yaml
+      - ../config/grafana-dashboards.yaml:/etc/grafana/provisioning/dashboards/grafana-dashboards.yaml
+      - ./grafana-example-dashboard.json:/etc/grafana/example-dashboard.json
+
+  prometheus:
+    platform: linux/amd64
+    image: prom/prometheus:v2.47.2
+    command:
+      - --config.file=/prometheus.yaml
+      - --web.enable-remote-write-receiver
+      - --enable-feature=otlp-write-receiver
+    volumes:
+      - ../config/prometheus.yaml:/prometheus.yaml
+    ports:
+      - "9090:9090"
+  loki:
+    image: grafana/loki:latest
+    volumes:
+      - ../config/loki.yaml:/etc/loki/local-config.yaml
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+
+  k6:
+    platform: linux/amd64
+    image: grafana/k6
+    volumes:
+      - ../config/k6-script.js:/k6-script.js
+    command:
+      - run
+      - /k6-script.js
+    depends_on:
+      - hello-world
