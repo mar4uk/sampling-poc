@@ -7,9 +7,13 @@ otelcol.receiver.otlp "default" {
 	http { }
 
 	output {
-		metrics = [otelcol.processor.batch.default.input]
+		metrics = [otelcol.processor.transform.add_resource_attributes_as_metric_attributes.input]
 		logs    = [otelcol.processor.batch.default.input]
-		traces  = [otelcol.processor.batch.default.input]
+		traces  = [
+		    otelcol.processor.tail_sampling.default.input
+		    otelcol.connector.spanmetrics.default.input,
+		    otelcol.connector.servicegraph.default.input
+		]
 	}
 }
 
@@ -20,6 +24,63 @@ otelcol.processor.batch "default" {
 		logs    = [otelcol.exporter.loki.grafana_cloud_loki.input]
 		traces  = [otelcol.exporter.otlp.grafana_cloud_tempo.input]
 	}
+}
+
+otelcol.connector.spanmetrics "default" {
+  // https://grafana.com/docs/agent/latest/flow/reference/components/otelcol.connector.spanmetrics/
+
+  dimension {
+    name="service.namespace"
+  }
+  dimension {
+    name="deployment.environment"
+  }
+
+  histogram {
+    // info: don't use `exponential{}` as it's not supported by `prometheus.remote_write`
+    // Tempo uses exponential by default https://github.com/grafana/tempo/blob/dc760c629ed168964548604459e004739dc97971/modules/generator/processor/spanmetrics/config.go#L54C6-L54C22
+    // Check default buckets in otel spanmetrics
+    explicit {
+      buckets=[ "0s", "0.005s", "0.01s", "0.025s", "0.05s", "0.075s", "0.1s", "0.25s", "0.5s", "0.75s", "1s", "2.5s", "5s", "7.5s", "10s" ]
+    }
+    unit = "s"
+  }
+
+  namespace = "traces.spanmetrics"
+
+  output {
+    metrics = [otelcol.processor.transform.use_grafana_metric_names.input]
+  }
+}
+
+otelcol.processor.transform "use_grafana_metric_names" {
+  // https://grafana.com/docs/agent/latest/flow/reference/components/otelcol.processor.transform/
+  error_mode = "ignore"
+
+  metric_statements {
+    context = "metric"
+    statements = [
+      "set(name, \"traces.spanmetrics.latency\") where name == \"traces.spanmetrics.duration\"",
+      "set(name, \"traces.spanmetrics.calls.total\") where name == \"traces.spanmetrics.calls\"",
+    ]
+  }
+
+  output {
+    metrics = [otelcol.processor.batch.default.input]
+  }
+}
+
+otelcol.processor.tail_sampling "default" {
+    // https://grafana.com/docs/agent/latest/flow/reference/components/otelcol.processor.tail_sampling/
+    policy {
+        // Examples: keep all traces that take more than 5000 ms
+        // [ { name: all_traces_above_5000ms, type: latency, latency: { threshold_ms: 5000 } } ]
+
+    }
+
+    output {
+        traces = [otelcol.processor.batch.default.input]
+    }
 }
 
 otelcol.exporter.loki "grafana_cloud_loki" {
