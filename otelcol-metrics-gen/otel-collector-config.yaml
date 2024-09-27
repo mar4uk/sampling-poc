@@ -4,7 +4,9 @@ receivers:
   otlp:
     protocols:
       grpc:
+        endpoint: ${env:OTEL_COLLECTOR_HOST}:${env:OTEL_COLLECTOR_PORT_GRPC}
       http:
+        endpoint: ${env:OTEL_COLLECTOR_HOST}:${env:OTEL_COLLECTOR_PORT_HTTP}
   hostmetrics:
     # Optional. Host Metrics Receiver added as an example of Infra Monitoring capabilities of the OTel Collector
     # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/hostmetricsreceiver
@@ -33,14 +35,6 @@ processors:
     metrics:
       datapoint:
         - 'IsMatch(metric.name, "traces.spanmetrics.calls|traces.spanmetrics.duration") and IsMatch(attributes["span.kind"], "SPAN_KIND_INTERNAL|SPAN_KIND_CLIENT|SPAN_KIND_PRODUCER")'
-  transform/use_grafana_metric_names:
-    # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/transformprocessor
-    error_mode: ignore
-    metric_statements:
-      - context: metric
-        statements:
-          - set(name, "traces.spanmetrics.latency") where name == "traces.spanmetrics.duration"
-          - set(name, "traces.spanmetrics.calls.total") where name == "traces.spanmetrics.calls"
   tail_sampling:
     # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/tailsamplingprocessor
     policies:
@@ -110,8 +104,9 @@ connectors:
 
   spanmetrics:
     # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/connector/spanmetricsconnector
-    namespace: traces.spanmetrics
     histogram:
+      exponential:
+        max_size:
       unit: s
     dimensions:
       - name: service.namespace
@@ -127,7 +122,9 @@ exporters:
       insecure_skip_verify: true
   prometheusremotewrite/grafana_cloud_metrics:
     endpoint: http://prometheus:9090/api/v1/write
-    add_metric_suffixes: false
+
+  debug:
+    verbosity: detailed
 
 service:
   pipelines:
@@ -145,8 +142,8 @@ service:
       exporters: [ prometheusremotewrite/grafana_cloud_metrics ]
     metrics/spanmetrics:
       receivers: [ spanmetrics ]
-      processors: [ filter/drop_unneeded_span_metrics , transform/use_grafana_metric_names, batch ]
-      exporters: [ prometheusremotewrite/grafana_cloud_metrics ]
+      processors: [ batch ]
+      exporters: [ debug, prometheusremotewrite/grafana_cloud_metrics ]
     metrics/servicegraph:
       receivers: [ servicegraph ]
       processors: [ batch ]
