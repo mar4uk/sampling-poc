@@ -105,14 +105,17 @@ connectors:
   spanmetrics:
     # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/connector/spanmetricsconnector
     histogram:
-      exponential:
-        max_size:
+#      exponential:
+#        max_size:
       unit: s
     dimensions:
       - name: service.namespace
       - name: deployment.environment
 #    exemplars:
 #      enabled: true
+
+  grafanacloud:
+    host_identifiers: [ "host.name" ]
 
 exporters:
   otlp/grafana_cloud_traces:
@@ -131,7 +134,7 @@ service:
     traces:
       receivers: [ otlp ]
       processors: [ resourcedetection, batch ]
-      exporters: [ servicegraph, spanmetrics ]
+      exporters: [ servicegraph, spanmetrics, grafanacloud ]
     traces/grafana_cloud_traces:
       receivers: [ otlp ]
       processors: [ resourcedetection, tail_sampling, batch ]
@@ -148,6 +151,11 @@ service:
       receivers: [ servicegraph ]
       processors: [ batch ]
       exporters: [ prometheusremotewrite/grafana_cloud_metrics ]
+    metrics/grafanacloud:
+      receivers: [ grafanacloud ]
+      processors: [ batch ]
+      exporters: [ prometheusremotewrite/grafana_cloud_metrics ]
+
 #    logs:
 #      receivers: [ otlp ]
 #      processors: [ resourcedetection, batch ]
