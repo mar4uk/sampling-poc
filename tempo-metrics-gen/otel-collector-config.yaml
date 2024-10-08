@@ -2,6 +2,9 @@ receivers:
   otlp:
     protocols:
       grpc:
+        endpoint: ${env:OTEL_COLLECTOR_HOST}:${env:OTEL_COLLECTOR_PORT_GRPC}
+      http:
+        endpoint: ${env:OTEL_COLLECTOR_HOST}:${env:OTEL_COLLECTOR_PORT_HTTP}
 processors:
   attributes:
     actions:
@@ -10,13 +13,14 @@ processors:
         value: 0.5
 
 exporters:
-  otlp:
-    endpoint: tempo:4417
+  otlp/grafana_cloud_traces:
+    endpoint: http://tempo:4417
     tls:
       insecure: true
+      insecure_skip_verify: true
 service:
   pipelines:
     traces:
       receivers: [otlp]
       processors: [attributes]
-      exporters: [otlp]
+      exporters: [otlp/grafana_cloud_traces]

@@ -20,6 +20,7 @@ metrics_generator:
       span_multiplier_key: "X-SampleRatio"
     span_metrics:
       span_multiplier_key: "X-SampleRatio"
+      enable_target_info: true
   storage:
     path: /tmp/tempo/generator/wal
     remote_write:
@@ -34,4 +35,5 @@ storage:
       path: /tmp/tempo/blocks
 
 overrides:
+  metrics_generator_generate_native_histograms: "both"
   metrics_generator_processors: [service-graphs, span-metrics] # enables metrics generator
